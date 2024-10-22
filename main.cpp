@@ -10,46 +10,32 @@ class ring_buffer
 public:
     ring_buffer(size_t capacity):
         storage(capacity + 1),
-        capacity(capacity),
         tail(0),
-        head(0),
-        curr_tail_pop(0),
-        curr_head_pop(0),
-        curr_tail_push(0),
-        curr_head_push(0)
+        head(0)
     {}
 
     bool push(T value)
     {
-        size_t next=get_next(curr_tail_pop);
-        if (next == curr_head_pop)
+        if (get_next(tail) == head)
         {
-            curr_head_pop = head.load();
-            if (next == curr_head_pop)
-                return false;
+            return false;
         }
 
-        storage[curr_tail_pop] = std::move(value);
-        curr_tail_pop=next;
-        if((curr_tail_pop & 0x3)==0)
-            tail.store(curr_tail_pop);
+        storage[tail] = std::move(value);
+        tail=get_next(tail);
 
         return true;
     }
 
     bool pop(T &value)
     {
-        if (curr_head_push == curr_tail_push)
+        if (head == tail)
         {
-            curr_tail_push = tail.load();
-            if (curr_head_push == curr_tail_push)
-                return false;
+            return false;
         }
 
-        value = std::move(storage[curr_head_push]);
-        curr_head_push=get_next(curr_head_push);
-        if((curr_head_push & 0x3)==0)
-            head.store(curr_head_push);
+        value = std::move(storage[head]);
+        head=get_next(head);
 
         return true;
     }
@@ -57,18 +43,13 @@ public:
 private:
     size_t get_next(size_t slot) const
     {
-        return slot<capacity?(slot+1):0;
+        return (slot + 1) % storage.size();
     }
 
 private:
     std::vector<T> storage;
-    size_t capacity;
-    std::atomic<size_t> tail;
-    std::atomic<size_t> head;
-    size_t curr_tail_pop;
-    size_t curr_head_pop;
-    size_t curr_tail_push;
-    size_t curr_head_push;
+    size_t tail;
+    size_t head;
 };
 
 void test()
