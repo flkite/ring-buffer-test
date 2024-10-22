@@ -10,6 +10,7 @@ class ring_buffer
 public:
     ring_buffer(size_t capacity):
         storage(capacity + 1),
+        capacity(capacity),
         tail(0),
         head(0)
     {}
@@ -49,11 +50,12 @@ public:
 private:
     size_t get_next(size_t slot) const
     {
-        return (slot + 1) % storage.size();
+        return slot<capacity?(slot+1):0;
     }
 
 private:
     std::vector<T> storage;
+    size_t capacity;
     std::atomic<size_t> tail;
     std::atomic<size_t> head;
 };
